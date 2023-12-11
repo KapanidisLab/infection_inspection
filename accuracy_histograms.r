@@ -1,0 +1,32 @@
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(reshape2)
+library(ggpubr)
+
+data <- read.csv("AVERAGE_SCORES.csv", header = TRUE)
+
+# Adding column based on other column:
+data <- data %>%
+  mutate(Resistant = case_when(
+    is.na(data$Resistant.Accuracies) ~ "Sensitive",
+    !is.na(data$Resistant.Accuracies) ~ "Resistant"
+  ))
+
+data$Phenotype <- as.factor(data$Resistant)
+
+# Merge columns ignoring NAs
+data$Accuracies <- coalesce(data$Resistant.Accuracies, data$Sensitive.Accuracies)
+
+p <- ggplot(data, aes(x=Accuracies)) +
+  theme(panel.border = element_rect(colour="black", fill=NA, linewidth = 1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  theme(legend.position = "right") + 
+  facet_wrap(data$Phenotype) +
+  geom_histogram(binwidth=0.05, colour="black", fill="lightgray") +
+  theme(strip.text.x = element_text(size = 16))
+p
+
+ggsave("Accuracy_Histograms.png",w=10,h=6,dpi=600)
