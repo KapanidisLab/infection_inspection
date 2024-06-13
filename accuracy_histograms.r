@@ -30,3 +30,19 @@ p <- ggplot(data, aes(x=Accuracies)) +
 p
 
 ggsave("Accuracy_Histograms.png",w=10,h=6,dpi=600)
+
+# How many are >= 0.5?
+# Count the number of rows where Accuracies >= 0.5
+countGreater <- data %>%
+  filter(Accuracies >= 0.5) %>%
+  summarise(count = n())
+
+# Count the number of rows where Accuracies < 0.5
+countLesser <- data %>%
+  filter(Accuracies < 0.5) %>%
+  summarise(count = n())
+
+# Count most accurate >=0.94
+countMost <- data %>%
+  filter(Accuracies >= 0.94) %>%
+  summarise(count = n())
