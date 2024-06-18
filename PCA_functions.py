@@ -1,3 +1,4 @@
+
 from matplotlib import pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -14,7 +15,7 @@ FEATURES_LIST = ['# Nucleoids',
                  'Nucleoid Mean Std Intensity',
                  'Nucleoid Area Fraction']
 
-def Principal_Component_Analysis(X, Y_Incorrects, Y_Resistant, Y_MostCorrect, Y_Targets, Y_MIC, Y_ModelTargets, Y_Disagree, style, features_list=FEATURES_LIST):
+def Principal_Component_Analysis(X, Y_Incorrects, Y_Resistant, Y_MostCorrect, Y_Targets, Y_MIC, style, features_list=FEATURES_LIST):
     # Data Preprocessing
     # StandardScaler will transform to mean = 0 and variance = 1
     scaler = StandardScaler()
@@ -34,10 +35,8 @@ def Principal_Component_Analysis(X, Y_Incorrects, Y_Resistant, Y_MostCorrect, Y_
     pca_df['Resistant'] = Y_Resistant # 1 if resistant
     pca_df['Most Correct'] = pd.Categorical.from_codes(Y_MostCorrect, ['Others', 'Most Correct'])
     pca_df['MIC'] = pd.Categorical(Y_MIC.astype('str'))
-    pca_df['Model Targets'] = Y_ModelTargets
     #pca_df['Most Correct'] = Y_MostCorrect # 1 if most correct
     #pca_df['Targets'] = pca_df['Targets'].map(target_names)
-    pca_df['Disagree'] = pd.Categorical.from_codes(Y_Disagree, ['Agree', 'Disagree'])
     
     print('Explained variation per principal component: {}'.format(pca.explained_variance_ratio_))
 
@@ -48,30 +47,27 @@ def Principal_Component_Analysis(X, Y_Incorrects, Y_Resistant, Y_MostCorrect, Y_
     scalePC1 = 1.0/(PC1.max() - PC1.min())
     scalePC2 = 1.0/(PC2.max() - PC2.min())
     features = features_list
-    
-    print(ldngs)
-    print(features)
 
-    plt.figure(figsize=(9,9))
+    plt.figure(figsize=(16,10))
 
     for i, feature in enumerate(features_list):
         plt.arrow(0, 0, ldngs[0,i],
                   ldngs[1,i])
     if style=="Highlight Corrects":
-        color_dict = {'Correct Sensitive': to_rgba('navy', 0.9),
-                    'Incorrect Sensitive': to_rgba('navy', 0.3),
-                    'Correct Resistant': to_rgba('darkred', 0.9),
-                    'Incorrect Resistant': to_rgba('darkred', 0.3)}
+        color_dict = {'Correct Sensitive': to_rgba('navy', 0.7),
+                    'Incorrect Sensitive': to_rgba('navy', 0.1),
+                    'Correct Resistant': to_rgba('darkred', 0.7),
+                    'Incorrect Resistant': to_rgba('darkred', 0.1)}
         HUE = "Targets"
     elif style=="Highlight Incorrects":
-        color_dict = {'Correct Sensitive': to_rgba('navy', 0.3),
-                    'Incorrect Sensitive': to_rgba('navy', 0.9),
-                    'Correct Resistant': to_rgba('darkred', 0.3),
-                    'Incorrect Resistant': to_rgba('darkred', 0.9)}
+        color_dict = {'Correct Sensitive': to_rgba('navy', 0.1),
+                    'Incorrect Sensitive': to_rgba('navy', 0.7),
+                    'Correct Resistant': to_rgba('darkred', 0.1),
+                    'Incorrect Resistant': to_rgba('darkred', 0.7)}
         HUE = "Targets"
     elif style=="Highlight Most Correct":
-        color_dict = {'Most Correct': to_rgba('navy', 0.9),
-                      'Others': to_rgba('navy', 0.3),}
+        color_dict = {'Most Correct': to_rgba('navy', 0.7),
+                      'Others': to_rgba('navy', 0.1),}
         HUE = "Most Correct"
     elif style=="Colour MIC":
         color_dict = {'0.008': to_rgba('red', 0.7),
@@ -79,27 +75,6 @@ def Principal_Component_Analysis(X, Y_Incorrects, Y_Resistant, Y_MostCorrect, Y_
                     '72.0': to_rgba('blue', 0.7),
                     '108.0': to_rgba('purple', 0.7)}
         HUE = "MIC"
-    elif style=="Model":
-        color_dict = {'Sensitive': to_rgba('navy', 0.9),
-                    'Resistant': to_rgba('darkred', 0.9)}
-        HUE = "Model"
-    elif style=="Model Corrects":
-        color_dict = {'Correct Sensitive': to_rgba('navy', 0.9),
-                    'Incorrect Sensitive': to_rgba('navy', 0.3),
-                    'Correct Resistant': to_rgba('darkred', 0.9),
-                    'Incorrect Resistant': to_rgba('darkred', 0.3)}
-        HUE = "Model Targets"
-    elif style=="Model Incorrects":
-        color_dict = {'Correct Sensitive': to_rgba('navy', 0.3),
-                    'Incorrect Sensitive': to_rgba('navy', 0.9),
-                    'Correct Resistant': to_rgba('darkred', 0.3),
-                    'Incorrect Resistant': to_rgba('darkred', 0.9)}
-        HUE = "Model Targets"
-        
-    elif style=="Disagree":
-        color_dict = {'Disagree': to_rgba('navy', 0.9),
-                    'Agree': to_rgba('darkred', 0.3)}
-        HUE = "Disagree"
         
     ax = sns.scatterplot(
         x=PC1*scalePC1, y=PC2*scalePC2,
@@ -112,6 +87,7 @@ def Principal_Component_Analysis(X, Y_Incorrects, Y_Resistant, Y_MostCorrect, Y_
         legend="full"
     )
     ax.legend().set_title('')
+    ax.legend(fontsize='x-large')
     sns.move_legend(ax, "lower right")
     sns.rugplot(data=pca_df, x=PC1*scalePC1, y=PC2*scalePC2, hue=HUE, palette=color_dict, legend=False)
 
@@ -120,16 +96,6 @@ def Principal_Component_Analysis(X, Y_Incorrects, Y_Resistant, Y_MostCorrect, Y_
     for i, feature in enumerate(features_list):
         plt.arrow(0, 0, ldngs[0,i], ldngs[1,i])
     sns.move_legend(ax, "lower right")
-    plt.gca().set_aspect('equal', adjustable='box')
-    
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
-    ax.legend(fontsize=14)
-        
-    max_range = max(abs(PC1*scalePC1).max(), abs(PC2*scalePC2).max())
-    plt.xlim(-max_range, max_range)
-    plt.ylim(-max_range, max_range)
-    plt.rcParams['figure.dpi'] = 300
 
  
 def PCA_HeatMap(X, features_list=FEATURES_LIST):
@@ -246,14 +212,14 @@ def Principal_Component_Analysis_Most_Correct(X, Y_Incorrects, Y_Resistant, Y_Mo
     scalePC2 = 1.0/(PC2.max() - PC2.min())
     features = features_list
 
-    plt.figure(figsize=(9,9))
+    plt.figure(figsize=(16,10))
 
     if style=="Highlight Most Correct":
 
-        color_dict = {'Sensitive Most Correct': to_rgba('navy', 0.9),
-                    'Sensitive Others': to_rgba('navy', 0.3),
-                    'Resistant Most Correct': to_rgba('darkred', 0.9),
-                    'Resistant Others': to_rgba('darkred', 0.3)}
+        color_dict = {'Sensitive Most Correct': to_rgba('navy', 0.7),
+                    'Sensitive Others': to_rgba('navy', 0.1),
+                    'Resistant Most Correct': to_rgba('darkred', 0.7),
+                    'Resistant Others': to_rgba('darkred', 0.1)}
         HUE = "Most Correct Targets"
         
     ax = sns.scatterplot(
@@ -267,21 +233,14 @@ def Principal_Component_Analysis_Most_Correct(X, Y_Incorrects, Y_Resistant, Y_Mo
         legend="full"
     )
     ax.legend().set_title('')
-    sns.move_legend(ax, "lower right")
+    ax.legend(fontsize='x-large')
+
     sns.rugplot(data=pca_df, x=PC1*scalePC1, y=PC2*scalePC2, hue=HUE, palette=color_dict, legend=False)
 
+    for i, feature in enumerate(features_list):
+        plt.arrow(0, 0, ldngs[0,i],
+                  ldngs[1,i])
+
+    sns.move_legend(ax, "lower right")
     plt.xlabel('PC1', fontsize=22)
     plt.ylabel('PC2', fontsize=22)
-    for i, feature in enumerate(features_list):
-        plt.arrow(0, 0, ldngs[0,i], ldngs[1,i])
-    sns.move_legend(ax, "lower right")
-    plt.gca().set_aspect('equal', adjustable='box')
-    
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
-    ax.legend(fontsize=14)
-        
-    max_range = max(abs(PC1*scalePC1).max(), abs(PC2*scalePC2).max())
-    plt.xlim(-max_range, max_range)
-    plt.ylim(-max_range, max_range)
-    plt.rcParams['figure.dpi'] = 300
