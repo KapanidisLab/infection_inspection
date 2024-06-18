@@ -19,7 +19,26 @@
   
   # >>> DATA LOADING <<< #
   # Getting the datasets in order
-  alldata <- read.csv("DATA_ANON.csv")
+  userdata <- read.csv('Sep_2023_working_dataset.csv', header = TRUE)
+  userdata <- userdata %>% filter(dataset == "Test")
+  names(userdata)
+  
+  modeldata <- read.csv('Updated_DL_model_on_zooniverse.csv', header = TRUE)
+  names(modeldata)
+  dim(userdata)
+  dim(modeldata)
+  
+  alldata <- rbind(userdata, modeldata)
+  dim(alldata)
+  names(alldata)
+  
+  columns_to_keep <- c("anon_name", "date", "day", "time_stamp", "Our_ID", "anon_strain",
+                       "MIC", "treatment_concentration", "dataset",
+                       "expected_response", "classification", "classifier",
+                       "user_call")
+  alldata <- alldata %>%
+    select(all_of(columns_to_keep))
+  dim(alldata)
   alldata <- alldata %>% filter(classification != "Image processing error")
   dim(alldata)
   alldata$classifier <- factor(alldata$classifier, levels = c("Zooniverse", "DL_Model"))
@@ -200,13 +219,11 @@
   dataZN_percent <- dataZN %>%
     group_by(classifier, expected_response, user_call) %>%
     summarise(Count = n()) %>%
-    mutate(Percentage = ifelse(user_call == "Correct", Count / sum(Count) * 100, 0)) %>%
-    mutate(CI = (1.96 * sqrt(((Percentage/100) * (1 - (Percentage/100))) / Count) + (0.5/Count)) * 100) #95CI by Wald Method with continuity correction
-    
+    mutate(Percentage = ifelse(user_call == "Correct", Count / sum(Count) * 100, 0))
+  
   # Plotting accuracy for Zooniverse (only "Correct" user_call)
   znpercent_correct <- ggplot(dataZN_percent, aes(expected_response, Percentage)) +
     geom_bar(colour = "black", width = 0.7, stat = "identity", fill = "#43a2ca") +
-    geom_errorbar(aes(ymin = Percentage - CI, ymax = Percentage + CI), width = 0.2) +
     geom_text(aes(label = ifelse(Percentage > 5, paste0(sprintf("%.1f", Percentage), "%"), "")),
               vjust = -0.5, size = 5, color = "black") +  # Add text annotations, show only if Percentage > 5
     ylab("Percentage correct") +
@@ -249,13 +266,11 @@
   dataModel_percent <- dataModel %>%
     group_by(classifier, expected_response, user_call) %>%
     summarise(Count = n()) %>%
-    mutate(Percentage = ifelse(user_call == "Correct", Count / sum(Count) * 100, 0)) %>%
-    mutate(CI = (1.96 * sqrt(((Percentage/100) * (1 - (Percentage/100))) / Count) + (0.5/Count)) * 100) #95CI by Wald Method with continuity correction
+    mutate(Percentage = ifelse(user_call == "Correct", Count / sum(Count) * 100, 0))
   
   # Plotting accuracy for Zooniverse (only "Correct" user_call)
   modelpercent <- ggplot(dataModel_percent, aes(expected_response, Percentage)) +
     geom_bar(colour = "black", width = 0.7, stat = "identity", fill = "#43a2ca") +
-    geom_errorbar(aes(ymin = Percentage - CI, ymax = Percentage + CI), width = 0.2) +
     geom_text(aes(label = ifelse(Percentage > 5, paste0(sprintf("%.1f", Percentage), "%"), "")),
               vjust = -0.5, size = 5, color = "black") +  # Add text annotations, show only if Percentage > 5
     ylab("Percentage correct") +
@@ -309,8 +324,7 @@
       pivot_wider(names_from = user_call, values_from = count, values_fill = 0)
     
     count_data <- count_data %>%
-      mutate(total = Correct + Incorrect, percentage_correct = Correct * 100 / total) %>%
-      mutate(CI = (1.96 * sqrt(((percentage_correct/100) * (1 - (percentage_correct/100))) / total) + (0.5/total))
+      mutate(total = Correct + Incorrect, percentage_correct = Correct * 100 / total)
     
     custom_colors <- c('#80b1d3', '#b35806')
     
@@ -325,7 +339,6 @@
     p <- ggplot(count_data, aes(x = treatment_concentration, y = percentage_correct, group = anon_strain, color = anon_strain)) +
       geom_line(linewidth = 1) + 
       geom_point(size = 4, shape = 16) +  
-      geom_errorbar(aes(ymin=percentage_correct-CI, ymax=percentage_correct+CI), width=.2) +
       geom_vline(xintercept = unique(count_data$treatment_concentration), 
                  linetype = "dashed", color = "#bdbdbd", linewidth = 0.2) +  
       labs(x = "Treatment Concentration \n(mg/l)", y = "Percentage of Correct") +
@@ -380,8 +393,7 @@
       pivot_wider(names_from = user_call, values_from = count, values_fill = 0)
     
     count_data <- count_data %>%
-      mutate(total = Correct + Incorrect, percentage_correct = Correct * 100 / total) %>%
-      mutate(CI = (1.96 * sqrt(((percentage_correct/100) * (1 - (percentage_correct/100))) / total) + (0.5/total)) * 100)
+      mutate(total = Correct + Incorrect, percentage_correct = Correct * 100 / total)
     
     custom_colors <- c('#80b1d3', '#b35806')
     
@@ -396,7 +408,6 @@
     M <- ggplot(count_data, aes(x = treatment_concentration, y = percentage_correct, group = anon_strain, color = anon_strain)) +
       geom_line(linewidth = 1) + 
       geom_point(size = 4, shape = 16) +  
-      geom_errorbar(aes(ymin=percentage_correct-CI, ymax=percentage_correct+CI), width=.2) +
       geom_vline(xintercept = unique(count_data$treatment_concentration), 
                  linetype = "dashed", color = "#bdbdbd", linewidth = 0.2) +  
       labs(x = "Treatment Concentration \n(mg/l)", y = "Percentage of Correct") +
