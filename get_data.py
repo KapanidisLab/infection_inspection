@@ -173,12 +173,23 @@ def get_arrays(df, columns=COLUMNS):
 
     # The features are found in the 4th - 26th columns
     X = df.loc[:,columns].to_numpy()
-    Y_Incorrects = df.iloc[:,14].to_numpy()
-    Y_Resistant = df.iloc[:,15].to_numpy()
-    Y_MostCorrect = df.iloc[:,16].to_numpy()
-    Y_Targets = df.iloc[:,17].to_numpy()
-    Y_MIC = df.iloc[:,13].to_numpy()
-    Y_Titrations = df.iloc[:,16].to_numpy()
+    Y_Incorrects = df.iloc[:,17].to_numpy()
+    Y_Resistant = df.iloc[:,18].to_numpy()
+    Y_MostCorrect = df.iloc[:,19].to_numpy()
+    Y_Targets = df.iloc[:,20].to_numpy()
+    Y_MIC = df.iloc[:,22].to_numpy()
+    #Y_Titrations = df.iloc[:,16].to_numpy()
+    
+    # Get the model data
+    
+    # ml_info['Incorrect'] = np.where(ml_info['expected_phenotype'] != ml_info['ml_pred_label'], 1, 0)
+    df['Model Target'] = np.where((df['expected_phenotype']=='Sensitive') & (df['ml_pred_label']=='Sensitive'), "Correct Sensitive", 0)
+    df['Model Target'] = np.where((df['expected_phenotype']=='Sensitive') & (df['ml_pred_label']=='Resistant'), "Incorrect Sensitive", df['Model Target'])
+    df['Model Target'] = np.where((df['expected_phenotype']=='Resistant') & (df['ml_pred_label']=='Sensitive'), "Incorrect Resistant", df['Model Target'])
+    df['Model Target'] = np.where((df['expected_phenotype']=='Resistant') & (df['ml_pred_label']=='Resistant'), "Correct Resistant", df['Model Target'])
+    Y_ModelTarget = df['Model Target'].to_numpy()
+    
+    Y_Disagree = np.where(df['Target'] == df['Model Target'], 0, 1)
 
     # Count the number of nans in X
     if np.isnan(X).sum() > 0:
@@ -190,8 +201,10 @@ def get_arrays(df, columns=COLUMNS):
         Y_MostCorrect = np.delete(Y_MostCorrect, np.unique(nans_array[:,0]), axis=0)
         Y_Targets = np.delete(Y_Targets, np.unique(nans_array[:,0]), axis=0)
         Y_MIC = np.delete(Y_MIC, np.unique(nans_array[:,0]), axis=0)
+        Y_ModelTarget = np.delete(Y_ModelTarget, np.unique(nans_array[:,0]), axis=0)
+        Y_Disagree = np.delete(Y_Disagree, np.unique(nans_array[:,0]), axis=0)
         print('X contains nans, rows with nans deleted')
         print(np.isnan(X).sum())
         print(np.unique(nans_array[:,0]))
 
-    return X, Y_Incorrects, Y_Resistant, Y_MostCorrect, Y_Targets, Y_MIC
+    return X, Y_Incorrects, Y_Resistant, Y_MostCorrect, Y_Targets, Y_MIC, Y_ModelTarget, Y_Disagree
