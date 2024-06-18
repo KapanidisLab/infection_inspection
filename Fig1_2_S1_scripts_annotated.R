@@ -219,11 +219,13 @@
   dataZN_percent <- dataZN %>%
     group_by(classifier, expected_response, user_call) %>%
     summarise(Count = n()) %>%
-    mutate(Percentage = ifelse(user_call == "Correct", Count / sum(Count) * 100, 0))
+    mutate(Percentage = ifelse(user_call == "Correct", Count / sum(Count) * 100, 0)) %>%
+    mutate(CI = (1.96 * sqrt(((Percentage/100) * (1 - (Percentage/100))) / Count) + (0.5/Count)) * 100) #95CI by Wald Method with continuity correction
   
   # Plotting accuracy for Zooniverse (only "Correct" user_call)
   znpercent_correct <- ggplot(dataZN_percent, aes(expected_response, Percentage)) +
     geom_bar(colour = "black", width = 0.7, stat = "identity", fill = "#43a2ca") +
+    geom_errorbar(aes(ymin = Percentage - CI, ymax = Percentage + CI), width = 0.2) +
     geom_text(aes(label = ifelse(Percentage > 5, paste0(sprintf("%.1f", Percentage), "%"), "")),
               vjust = -0.5, size = 5, color = "black") +  # Add text annotations, show only if Percentage > 5
     ylab("Percentage correct") +
@@ -240,7 +242,7 @@
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
           panel.border = element_rect(colour = "black", fill = NA, linewidth = 1)) +
-    facet_wrap(~ classifier, nrow = 1) +
+    facet_wrap(~ classifier, nrow=1) +
     scale_y_continuous(expand = c(0, 0), limits = c(0, 100)) +  # Set the y-axis limits
     labs(fill = "Call")
   
@@ -266,11 +268,13 @@
   dataModel_percent <- dataModel %>%
     group_by(classifier, expected_response, user_call) %>%
     summarise(Count = n()) %>%
-    mutate(Percentage = ifelse(user_call == "Correct", Count / sum(Count) * 100, 0))
+    mutate(Percentage = ifelse(user_call == "Correct", Count / sum(Count) * 100, 0)) %>%
+    mutate(CI = (1.96 * sqrt(((Percentage/100) * (1 - (Percentage/100))) / Count) + (0.5/Count)) * 100) #95CI by Wald Method with continuity correction
   
   # Plotting accuracy for Zooniverse (only "Correct" user_call)
   modelpercent <- ggplot(dataModel_percent, aes(expected_response, Percentage)) +
     geom_bar(colour = "black", width = 0.7, stat = "identity", fill = "#43a2ca") +
+    geom_errorbar(aes(ymin = Percentage - CI, ymax = Percentage + CI), width = 0.2) +
     geom_text(aes(label = ifelse(Percentage > 5, paste0(sprintf("%.1f", Percentage), "%"), "")),
               vjust = -0.5, size = 5, color = "black") +  # Add text annotations, show only if Percentage > 5
     ylab("Percentage correct") +
@@ -287,7 +291,7 @@
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
           panel.border = element_rect(colour = "black", fill = NA, linewidth = 1)) +
-    facet_wrap(~ classifier, nrow = 1) +
+    facet_wrap(~ classifier, nrow = 1,labeller = as_labeller(c(DL_Model = "DL Model"))) +
     scale_y_continuous(expand = c(0, 0), limits = c(0, 100)) +  # Set the y-axis limits
     labs(fill = "Call")
   
@@ -324,7 +328,8 @@
       pivot_wider(names_from = user_call, values_from = count, values_fill = 0)
     
     count_data <- count_data %>%
-      mutate(total = Correct + Incorrect, percentage_correct = Correct * 100 / total)
+      mutate(total = Correct + Incorrect, percentage_correct = Correct * 100 / total) %>%
+      mutate(CI = (1.96 * sqrt(((percentage_correct/100) * (1 - (percentage_correct/100))) / total) + (0.5/total)) * 100)
     
     custom_colors <- c('#80b1d3', '#b35806')
     
@@ -338,7 +343,8 @@
     
     p <- ggplot(count_data, aes(x = treatment_concentration, y = percentage_correct, group = anon_strain, color = anon_strain)) +
       geom_line(linewidth = 1) + 
-      geom_point(size = 4, shape = 16) +  
+      geom_point(size = 4, shape = 16) + 
+      geom_errorbar(aes(ymin=percentage_correct-CI, ymax=percentage_correct+CI), width=.2) +
       geom_vline(xintercept = unique(count_data$treatment_concentration), 
                  linetype = "dashed", color = "#bdbdbd", linewidth = 0.2) +  
       labs(x = "Treatment Concentration \n(mg/l)", y = "Percentage of Correct") +
@@ -393,7 +399,8 @@
       pivot_wider(names_from = user_call, values_from = count, values_fill = 0)
     
     count_data <- count_data %>%
-      mutate(total = Correct + Incorrect, percentage_correct = Correct * 100 / total)
+      mutate(total = Correct + Incorrect, percentage_correct = Correct * 100 / total) %>%
+      mutate(CI = (1.96 * sqrt(((percentage_correct/100) * (1 - (percentage_correct/100))) / total) + (0.5/total)) * 100)
     
     custom_colors <- c('#80b1d3', '#b35806')
     
@@ -407,7 +414,8 @@
     
     M <- ggplot(count_data, aes(x = treatment_concentration, y = percentage_correct, group = anon_strain, color = anon_strain)) +
       geom_line(linewidth = 1) + 
-      geom_point(size = 4, shape = 16) +  
+      geom_point(size = 4, shape = 16) + 
+      geom_errorbar(aes(ymin=percentage_correct-CI, ymax=percentage_correct+CI), width=.2) +
       geom_vline(xintercept = unique(count_data$treatment_concentration), 
                  linetype = "dashed", color = "#bdbdbd", linewidth = 0.2) +  
       labs(x = "Treatment Concentration \n(mg/l)", y = "Percentage of Correct") +
@@ -563,4 +571,45 @@
   # Save accuracy data to a CSV file
   write.csv(accuracy, "accurate_scores.csv")
   
+}
+
+###>>>-------<<<###
+# Accuracy by Strain
+###>>>-------<<<###
+
+dataZN$user_call <- factor(dataZN$user_call, levels = c("Incorrect", "Correct"))
+dataZN$anon_strain <- factor(dataZN$anon_strain, levels = c("EC1", "EC2", "EC3", "EC5", "EC6"))
+
+# Calculate the percentage of "Correct" calls for each strain
+percentage_correct <- dataZN %>%
+  group_by(anon_strain) %>%
+  dplyr::summarize(total = n(),
+    correct = sum(user_call == "Correct"),
+    percentage_correct = (correct / total) * 100
+  ) %>%
+  mutate(CI = (1.96 * sqrt(((percentage_correct/100) * (1 - (percentage_correct/100))) / total) + (0.5/total)) * 100) #95CI by Wald Method with continuity correction
+
+# Print the result
+print(percentage_correct)
+
+# Count number of images per strain
+modeldata$anon_strain <- factor(modeldata$anon_strain, levels = c("EC1", "EC2", "EC3", "EC5", "EC6"))
+strain_count <- modeldata %>%
+  group_by(anon_strain) %>%
+  dplyr::summarize(total = n())
+print(strain_count)
+
+# Model accuracy by strain
+modeldata$user_call <- factor(modeldata$user_call, levels = c("Incorrect", "Correct"))
+# Calculate the percentage of "Correct" calls for each strain
+model_percentage_correct <- modeldata %>%
+  group_by(anon_strain) %>%
+  dplyr::summarize(total = n(),
+                   correct = sum(user_call == "Correct"),
+                   percentage_correct = (correct / total) * 100
+  ) %>%
+  mutate(CI = (1.96 * sqrt(((percentage_correct/100) * (1 - (percentage_correct/100))) / total) + (0.5/total)) * 100) #95CI by Wald Method with continuity correction
+
+# Print the result
+print(model_percentage_correct)
 }
